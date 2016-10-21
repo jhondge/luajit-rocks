@@ -48,7 +48,10 @@ IF(MSVC)
 ENDIF()
 
 # Readline support
-FIND_PACKAGE(Readline)
+IF(NOT IOS_BUILD)
+  FIND_PACKAGE(Readline)
+ENDIF(NOT IOS_BUILD)
+
 IF(READLINE_FOUND)
   ADD_DEFINITIONS("-DLUA_USE_READLINE")
   LIST(APPEND LIBS ${READLINE_LIBRARIES})
@@ -146,7 +149,10 @@ else ()
 endif ()
 
 IF(NOT WIN32)
-  FIND_LIBRARY(DL_LIBRARY "dl")
+  IF(NOT IOS_BUILD)
+    FIND_LIBRARY(DL_LIBRARY "dl")
+  ENDIF(NOT IOS_BUILD)
+
   IF(DL_LIBRARY)
     SET(CMAKE_REQUIRED_LIBRARIES ${DL_LIBRARY})
     LIST(APPEND LIBS ${DL_LIBRARY})
@@ -368,13 +374,26 @@ SET(DEPS
 include_directories(BEFORE ${CMAKE_CURRENT_BINARY_DIR} dynasm src)
 
 IF(WITH_AMALG)
-  add_library(libluajit SHARED src/ljamalg.c ${DEPS} )
-  add_library(luajit-static STATIC src/ljamalg.c ${DEPS} )
-  set_property(TARGET luajit-static PROPERTY POSITION_INDEPENDENT_CODE 1)
+  
+  IF(IOS_BUILD)
+    add_library(libluajit STATIC src/ljamalg.c ${DEPS} )
+    set_property(TARGET libluajit PROPERTY POSITION_INDEPENDENT_CODE 1)
+  ELSE(IOS_BUILD)
+    add_library(libluajit SHARED src/ljamalg.c ${DEPS} )
+    #add_library(luajit-static STATIC src/ljamalg.c ${DEPS} )
+    #set_property(TARGET luajit-static PROPERTY POSITION_INDEPENDENT_CODE 1)
+  ENDIF(IOS_BUILD)
+  
 ELSE()
-  add_library(libluajit SHARED ${SRC_LJCORE} ${DEPS} )
-  add_library(luajit-static STATIC ${SRC_LJCORE} ${DEPS} )
-  set_property(TARGET luajit-static PROPERTY POSITION_INDEPENDENT_CODE 1)
+  IF(IOS_BUILD)
+    add_library(libluajit STATIC ${SRC_LJCORE} ${DEPS} )
+    set_property(TARGET libluajit PROPERTY POSITION_INDEPENDENT_CODE 1)
+  ELSE(IOS_BUILD)
+    add_library(libluajit SHARED ${SRC_LJCORE} ${DEPS} )
+    #add_library(luajit-static STATIC ${SRC_LJCORE} ${DEPS} )
+    #set_property(TARGET luajit-static PROPERTY POSITION_INDEPENDENT_CODE 1)
+  ENDIF(IOS_BUILD)
+  
 ENDIF()
 
 target_link_libraries (libluajit ${LIBS} )
@@ -390,11 +409,11 @@ ELSE()
   ELSE()
     add_executable(luajit src/luajit.c ${SRC_LJCORE} ${DEPS})
   ENDIF()
-  target_link_libraries(luajit ${LIBS})
+  target_link_libraries(luajit libluajit)
   SET_TARGET_PROPERTIES(luajit PROPERTIES ENABLE_EXPORTS ON)
 ENDIF()
 
-INSTALL(TARGETS libluajit luajit
+INSTALL(TARGETS luajit
   EXPORT torch-exports
   RUNTIME DESTINATION "${INSTALL_BIN_SUBDIR}"
   LIBRARY DESTINATION "${INSTALL_LIB_SUBDIR}"
