@@ -396,9 +396,14 @@ static CLibrary *clib_new(lua_State *L, GCtab *mt)
 /* Load a C library. */
 void lj_clib_load(lua_State *L, GCtab *mt, GCstr *name, int global)
 {
-  void *handle = clib_loadlib(L, strdata(name), global);
-  CLibrary *cl = clib_new(L, mt);
-  cl->handle = handle;
+    printf("\nlj_clib_load:%s\n",strdata(name));
+    CLibrary *cl = clib_new(L, mt);
+#if LJ_TARGET_IOS
+    cl->handle = CLIB_DEFHANDLE;
+#else
+    void *handle = clib_loadlib(L, strdata(name), global);
+    cl->handle = handle
+#endif
 }
 
 /* Unload a C library. */
